@@ -1,0 +1,33 @@
+# Secret & Environment Files
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs & Runtime
+logs/
+*.log
+
+# Heavy Assets & Checkpoints & Datasets
+checkpoints/
+models/
+datasets/
+results/
+scratch/
+
+# Python Cache & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+ENV/
+
+# IDE & System Files
+.vscode/
+.idea/
+.ds_store
+Thumbs.db
