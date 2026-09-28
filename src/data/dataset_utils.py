@@ -1,12 +1,36 @@
 import os
 from typing import Dict, Any, Tuple, Optional
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Dataset
+from PIL import Image
 from src.data.chexpert_dataset import CheXpertDatasetLoader
 from src.data.iu_xray_dataset import IUXRayDatasetLoader
+from src.preprocessing.image_preprocessing import get_transforms
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+class TransformedDatasetWrapper(Dataset):
+    """
+    Wrapper around PyTorch Dataset/Subset to apply image transformation on demand.
+    Ensures images are converted from PIL.Image to PyTorch Tensors.
+    """
+    def __init__(self, dataset: Dataset, transform=None):
+        self.dataset = dataset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx: int):
+        item = self.dataset[idx]
+        if self.transform is not None and "image" in item:
+            img = item["image"]
+            if isinstance(img, Image.Image):
+                item["image"] = self.transform(img)
+            elif not isinstance(img, torch.Tensor) and self.transform:
+                item["image"] = self.transform(img)
+        return item
 
 def validate_dataset_exists(dataset_name: str, dataset_path: str) -> bool:
     """
@@ -35,6 +59,12 @@ def get_dataloaders(
     data_config = config.get("data", {})
     batch_size = config.get("training", {}).get("batch_size", 16)
     num_workers = data_config.get("num_workers", 0)
+    image_size = data_config.get("image_size", 224)
+
+    if train_transform is None:
+        train_transform = get_transforms(image_size=image_size, is_train=True)
+    if val_transform is None:
+        val_transform = get_transforms(image_size=image_size, is_train=False)
 
     if dataset_type == "chexpert":
         path = data_config.get("chexpert_path", "datasets/chexpert")
@@ -46,7 +76,7 @@ def get_dataloaders(
             root_dir=path,
             csv_filename="train.csv",
             config=config,
-            transform=train_transform,
+            transform=None,
             is_train=True
         )
     elif dataset_type == "iu_xray":
@@ -59,7 +89,7 @@ def get_dataloaders(
             root_dir=path,
             csv_filename="indiana_reports.csv",
             config=config,
-            transform=train_transform,
+            transform=None,
             is_train=True
         )
     else:
@@ -77,12 +107,17 @@ def get_dataloaders(
     val_size = int(total_len * val_split)
     test_size = total_len - train_size - val_size
 
-    train_dataset, val_dataset, test_dataset = random_split(
+    raw_train, raw_val, raw_test = random_split(
         full_dataset, [train_size, val_size, test_size]
     )
+
+    train_dataset = TransformedDatasetWrapper(raw_train, train_transform)
+    val_dataset = TransformedDatasetWrapper(raw_val, val_transform)
+    test_dataset = TransformedDatasetWrapper(raw_test, val_transform)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return train_loader, val_loader, test_loader
+

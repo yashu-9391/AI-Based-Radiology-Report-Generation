@@ -1,3 +1,4 @@
+
 import os
 import sys
 import streamlit as st
@@ -82,12 +83,14 @@ with col_left:
             is_xray_valid, validation_error, metrics = validate_chest_xray(image)
 
             if not is_xray_valid:
+                # Clear previous session results immediately
+                st.session_state.pop("results", None)
                 # Display explicit Modal Popup & Warning Toast
                 st.markdown(f"""
                     <div class='popup-modal'>
                         <div class='popup-title'>⚠️ Invalid Image Selection</div>
                         <div class='popup-msg'>Please select only X-Ray images.</div>
-                        <div class='popup-subtext'>The uploaded image appears to be a color photo or non-radiological scan (Color variance: {metrics.get('mean_channel_diff', 0)}, Saturation: {metrics.get('mean_saturation', 0)}). Please upload a valid Chest X-Ray.</div>
+                        <div class='popup-subtext'>The uploaded image is NOT a Chest X-Ray (Handwriting / paper / color content detected: P95 Channel Diff={metrics.get('p95_channel_diff', 0)}, P95 Saturation={metrics.get('p95_saturation', 0)}). Please upload a valid Chest X-Ray.</div>
                     </div>
                 """, unsafe_allow_html=True)
                 st.toast("🚨 Please select only X-Ray images!", icon="⚠️")
@@ -139,10 +142,16 @@ with col_right:
             c1, c2, c3 = st.columns([2, 2, 1])
             c1.write(f"**{finding}**")
             c2.progress(prob, text=f"{percentage}")
-            if status == "Positive":
-                c3.markdown(f"<span class='positive-badge'>Positive</span>", unsafe_allow_html=True)
+            if finding == "No Finding":
+                if status == "Positive":
+                    c3.markdown("<span class='verified-badge'>Normal (Clear)</span>", unsafe_allow_html=True)
+                else:
+                    c3.markdown("<span class='negative-badge'>Abnormalities Present</span>", unsafe_allow_html=True)
             else:
-                c3.markdown(f"<span class='negative-badge'>Negative</span>", unsafe_allow_html=True)
+                if status == "Positive":
+                    c3.markdown("<span class='positive-badge'>Positive</span>", unsafe_allow_html=True)
+                else:
+                    c3.markdown("<span class='negative-badge'>Negative</span>", unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -184,6 +193,7 @@ with col_right:
         # Generated Preliminary Report Section
         st.markdown("#### 📝 Generated Preliminary Radiology Report")
         st.text_area("Structured Report Output", report_text, height=280)
+
 
         # Download Button
         st.download_button(

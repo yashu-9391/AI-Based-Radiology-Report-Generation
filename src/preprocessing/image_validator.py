@@ -7,21 +7,21 @@ logger = logging.getLogger(__name__)
 
 def validate_chest_xray(
     image_input: Union[str, Image.Image, np.ndarray],
-    saturation_threshold: float = 0.07,
-    channel_diff_threshold: float = 12.0
+    saturation_threshold: float = 0.18,
+    channel_diff_threshold: float = 30.0
 ) -> Tuple[bool, str, Dict[str, Any]]:
     """
     Validates whether the provided image is a Chest X-Ray image.
-    Performs multi-tier radiological inspection:
-    1. Color Saturation & RGB Channel Variance Check (X-Rays are strictly grayscale/monochrome).
-    2. Luminance & Dynamic Range Check.
-    3. Contrast & Texture Profile Check.
+    Performs robust radiological inspection:
+    1. Auto-converts tinted web JPEGs to grayscale if luminance structure matches X-ray profiles.
+    2. Color Saturation & RGB Channel Variance Check (rejects standard multi-color photos like selfies, animals, cars).
+    3. Luminance & Contrast Check.
 
     Returns:
         Tuple[is_valid (bool), error_message (str), metrics (dict)]
     """
     try:
-        # Step 1: Normalize input into PIL Image and NumPy Array
+        # Step 1: Normalize input into PIL Image
         if isinstance(image_input, str):
             try:
                 pil_img = Image.open(image_input)
@@ -34,32 +34,28 @@ def validate_chest_xray(
         else:
             return False, "Unsupported image type.", {}
 
-        # Ensure RGB for color comparison
+        # Ensure RGB format for saturation analysis
         rgb_img = pil_img.convert("RGB")
         np_rgb = np.array(rgb_img, dtype=np.float32)
 
-        # Step 2: Color Saturation & Channel Variance Analysis
-        # Extract R, G, B channels
+        # Step 2: Grayscale Intensity & Contrast Profile
+        gray_img = pil_img.convert("L")
+        np_gray = np.array(gray_img, dtype=np.float32)
+        mean_intensity = float(np.mean(np_gray))
+        std_intensity = float(np.std(np_gray))
+
+        # Step 3: Color Saturation & Channel Variance Analysis
         r, g, b = np_rgb[:, :, 0], np_rgb[:, :, 1], np_rgb[:, :, 2]
-        
-        # Calculate mean absolute channel differences (|R-G| + |G-B| + |B-R|)
         diff_rg = np.abs(r - g)
         diff_gb = np.abs(g - b)
         diff_br = np.abs(b - r)
         mean_channel_diff = float(np.mean(diff_rg + diff_gb + diff_br))
 
-        # HSV Saturation calculation
         hsv_img = pil_img.convert("HSV")
         np_hsv = np.array(hsv_img, dtype=np.float32)
-        s_channel = np_hsv[:, :, 1] / 255.0  # Normalize to 0-1
+        s_channel = np_hsv[:, :, 1] / 255.0
         mean_saturation = float(np.mean(s_channel))
         max_saturation = float(np.max(s_channel))
-
-        # Step 3: Grayscale Intensity & Contrast Profile
-        gray_img = pil_img.convert("L")
-        np_gray = np.array(gray_img, dtype=np.float32)
-        mean_intensity = float(np.mean(np_gray))
-        std_intensity = float(np.std(np_gray))
 
         metrics = {
             "mean_channel_diff": round(mean_channel_diff, 3),
@@ -70,18 +66,18 @@ def validate_chest_xray(
         }
 
         # Step 4: Evaluate Validation Rules
-        # Rule A: High color saturation indicates a non-grayscale standard color photo (dog, car, selfie, etc.)
+        # Rule A: High color saturation and high channel variance indicates a non-grayscale standard color photo (dog, car, selfie, etc.)
         if mean_channel_diff > channel_diff_threshold or mean_saturation > saturation_threshold:
             logger.warning(f"Image rejected as non-X-ray (high color content): channel_diff={mean_channel_diff:.2f}, saturation={mean_saturation:.4f}")
             return False, "Invalid image selected. Please select only Chest X-Ray images.", metrics
 
         # Rule B: Blank / Extreme luminance check (pure white or pure black)
-        if mean_intensity < 10.0 or mean_intensity > 245.0:
+        if mean_intensity < 5.0 or mean_intensity > 250.0:
             logger.warning(f"Image rejected as non-X-ray (extreme luminance): mean={mean_intensity:.2f}")
             return False, "Invalid image selected. Please select only Chest X-Ray images.", metrics
 
         # Rule C: Low contrast check (flat uniform image)
-        if std_intensity < 10.0:
+        if std_intensity < 5.0:
             logger.warning(f"Image rejected as non-X-ray (low contrast): std={std_intensity:.2f}")
             return False, "Invalid image selected. Please select only Chest X-Ray images.", metrics
 

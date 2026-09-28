@@ -23,10 +23,10 @@ class FAISSVectorStore:
             # IndexFlatIP with normalized L2 vectors equals Cosine Similarity
             self.index = faiss.IndexFlatIP(self.dimension)
             logger.info("Initialized FAISS IndexFlatIP vector store.")
-        except ImportError:
-            logger.warning("FAISS library not installed. Using fallback NumPy Cosine Similarity engine.")
+        except Exception as e:
+            logger.warning(f"FAISS library initialization notice: {e}. Using fallback NumPy Cosine Similarity engine.")
             self.index = None
-            self.vectors: List[np.ndarray] = []
+            self.vectors = None
 
     def add_vectors(self, embeddings: np.ndarray, metadata_list: List[Dict[str, Any]]):
         """
@@ -42,12 +42,11 @@ class FAISSVectorStore:
 
         if self.index is not None:
             self.index.add(normalized_embeddings)
+        
+        if not hasattr(self, 'vectors') or self.vectors is None or len(self.vectors) == 0:
+            self.vectors = normalized_embeddings
         else:
-            if not hasattr(self, 'vectors') or self.vectors is None or len(self.vectors) == 0:
-                self.vectors = normalized_embeddings
-            else:
-                self.vectors = np.vstack([self.vectors, normalized_embeddings])
-
+            self.vectors = np.vstack([self.vectors, normalized_embeddings])
 
         self.metadata.extend(metadata_list)
         logger.info(f"Added {len(embeddings)} vectors to index. Total count: {len(self.metadata)}")
@@ -70,7 +69,7 @@ class FAISSVectorStore:
 
         k = min(top_k, len(self.metadata))
 
-        if self.index is not None:
+        if self.index is not None and getattr(self.index, 'ntotal', 0) > 0:
             scores, indices = self.index.search(query_normalized, k)
             results = []
             for score, idx in zip(scores[0], indices[0]):
@@ -79,7 +78,7 @@ class FAISSVectorStore:
                     meta["similarity_score"] = float(score)
                     results.append(meta)
             return results
-        else:
+        elif hasattr(self, 'vectors') and self.vectors is not None and len(self.vectors) > 0:
             # Fallback NumPy Cosine Search
             sims = np.dot(self.vectors, query_normalized.T).squeeze(1)
             top_indices = np.argsort(sims)[::-1][:k]
@@ -89,6 +88,9 @@ class FAISSVectorStore:
                 meta["similarity_score"] = float(sims[idx])
                 results.append(meta)
             return results
+        else:
+            logger.warning("Vector store has no active FAISS index or vector array. Returning empty results.")
+            return []
 
     def save(self, index_path: str, metadata_path: str):
         """
@@ -101,7 +103,7 @@ class FAISSVectorStore:
         
         payload = {
             "metadata": self.metadata,
-            "vectors": self.vectors if hasattr(self, 'vectors') else None
+            "vectors": self.vectors if hasattr(self, 'vectors') and self.vectors is not None else None
         }
         with open(metadata_path, "wb") as f:
             pickle.dump(payload, f)
@@ -117,9 +119,14 @@ class FAISSVectorStore:
             return False
 
         try:
-            if self.index is not None and os.path.exists(index_path):
-                import faiss
-                self.index = faiss.read_index(index_path)
+            if os.path.exists(index_path):
+                try:
+                    import faiss
+                    loaded_index = faiss.read_index(index_path)
+                    if loaded_index is not None and loaded_index.ntotal > 0:
+                        self.index = loaded_index
+                except Exception as fe:
+                    logger.warning(f"FAISS index load notice ({fe}). Using fallback NumPy vectors.")
             
             with open(metadata_path, "rb") as f:
                 data = pickle.load(f)

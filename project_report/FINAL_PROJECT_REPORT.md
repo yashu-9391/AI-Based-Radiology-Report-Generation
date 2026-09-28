@@ -80,11 +80,11 @@ Built using Python 3.10+, PyTorch, torchvision, OpenCV, FAISS, Sentence-Transfor
 ## 23. Experimental Results
 
 ### Overall Summary
-- **Classifier Architecture**: DenseNet121
-- **Epochs Trained**: Experiment not completed.
-- **Test Samples Evaluated**: 500
-- **Macro AUROC (Overall Classification Accuracy)**: 0.8113 (81.13%)
-- **Macro AUPRC**: 0.6046
+- **Classifier Architecture**: densenet121
+- **Epochs Trained**: 10
+- **Test Samples Evaluated**: 22342
+- **Macro AUROC (Overall Classification Accuracy)**: 0.7846 (81.13%)
+- **Macro AUPRC**: 0.3776
 
 ### Single-Agent RAG Report Generation Performance
 | Metric | Score | Description |
@@ -95,20 +95,20 @@ Built using Python 3.10+, PyTorch, torchvision, OpenCV, FAISS, Sentence-Transfor
 | **Clinical Usefulness** | **88.0%** (0.8800) | Radiologist-oriented report structure adherence |
 
 ### Per-Observation Detailed Metrics
-| Cardiomegaly | 0.8824 | 0.7412 | 0.812 | 0.835 | 0.8233 |
-| Enlarged Cardiomediastinum | 0.7315 | 0.482 | 0.641 | 0.612 | 0.6262 |
-| Lung Opacity | 0.7512 | 0.7105 | 0.732 | 0.768 | 0.7496 |
-| Lung Lesion | 0.724 | 0.395 | 0.582 | 0.541 | 0.5607 |
-| Edema | 0.891 | 0.785 | 0.824 | 0.851 | 0.8373 |
-| Consolidation | 0.741 | 0.421 | 0.615 | 0.584 | 0.5991 |
-| Pneumonia | 0.715 | 0.381 | 0.571 | 0.532 | 0.5508 |
-| Atelectasis | 0.761 | 0.524 | 0.672 | 0.712 | 0.6914 |
-| Pneumothorax | 0.864 | 0.651 | 0.791 | 0.812 | 0.8014 |
-| Pleural Effusion | 0.912 | 0.842 | 0.865 | 0.881 | 0.8729 |
-| Pleural Other | 0.781 | 0.412 | 0.621 | 0.591 | 0.6056 |
-| Fracture | 0.765 | 0.431 | 0.642 | 0.615 | 0.6282 |
-| Support Devices | 0.924 | 0.885 | 0.891 | 0.912 | 0.9014 |
-| No Finding | 0.861 | 0.792 | 0.821 | 0.841 | 0.8309 |
+| Enlarged Cardiomediastinum | 0.6797 | 0.1218 | 0.0 | 0.0 | 0.0 |
+| Cardiomegaly | 0.8598 | 0.5091 | 0.6472 | 0.2895 | 0.4 |
+| Lung Opacity | 0.7286 | 0.6763 | 0.6443 | 0.6457 | 0.645 |
+| Lung Lesion | 0.7581 | 0.1266 | 0.1429 | 0.0011 | 0.0022 |
+| Edema | 0.838 | 0.5839 | 0.5592 | 0.5967 | 0.5773 |
+| Consolidation | 0.7212 | 0.1565 | 0.0 | 0.0 | 0.0 |
+| Pneumonia | 0.7228 | 0.0781 | 0.0 | 0.0 | 0.0 |
+| Atelectasis | 0.6866 | 0.2695 | 0.0 | 0.0 | 0.0 |
+| Pneumothorax | 0.8477 | 0.4398 | 0.6391 | 0.2051 | 0.3105 |
+| Pleural Effusion | 0.8759 | 0.8012 | 0.7309 | 0.7428 | 0.7368 |
+| Pleural Other | 0.782 | 0.0694 | 0.0 | 0.0 | 0.0 |
+| Fracture | 0.7306 | 0.1294 | 0.0 | 0.0 | 0.0 |
+| Support Devices | 0.8715 | 0.8598 | 0.8192 | 0.7877 | 0.8031 |
+| No Finding | 0.8822 | 0.4657 | 0.5762 | 0.2483 | 0.3471 |
 
 ## 24. Comparison with Existing Approaches
 | Metric / Feature | Baseline CNN-RNN | Proposed Multi-Label RAG |

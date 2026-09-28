@@ -13,9 +13,9 @@ data:
   image_size: 224
   channels: 3
   num_workers: 2
-  train_split: 0.8
-  val_split: 0.1
-  test_split: 0.1
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
 
 observations:
   - "Enlarged Cardiomediastinum"
@@ -53,13 +53,32 @@ training:
   early_stopping_patience: 5
 
 classification:
-  threshold: 0.5
+  threshold: 0.20
+  use_youden_j: true
+  optimal_thresholds:
+    Enlarged Cardiomediastinum: 0.18
+    Cardiomegaly: 0.22
+    Lung Opacity: 0.20
+    Lung Lesion: 0.15
+    Edema: 0.20
+    Consolidation: 0.15
+    Pneumonia: 0.08
+    Atelectasis: 0.20
+    Pneumothorax: 0.18
+    Pleural Effusion: 0.22
+    Pleural Other: 0.15
+    Fracture: 0.15
+    Support Devices: 0.30
+    No Finding: 0.35
 
 retrieval:
   embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
   top_k: 3
   vector_db_path: "checkpoints/faiss_index.bin"
   corpus_metadata_path: "checkpoints/report_corpus.pkl"
+
+rag:
+  mode: "single_agent" # Options: "single_agent", "multi_agent"
 
 report_generation:
   llm_provider: "rule_based" # Options: "rule_based", "huggingface", "ollama", "openai"

@@ -61,8 +61,9 @@ def evaluate_classifier(config: Dict[str, Any], model_path: str = "models/best_m
     num_classes = config.get("model", {}).get("num_classes", 14)
     labels = config.get("observations", [f"Class_{i}" for i in range(num_classes)])
 
+    arch = config.get("model", {}).get("architecture", "densenet121")
     checkpoint = torch.load(model_path, map_location=device)
-    model = MultiLabelRadiologyClassifier(num_classes=num_classes, pretrained=False)
+    model = MultiLabelRadiologyClassifier(architecture=arch, num_classes=num_classes, pretrained=False)
     model.load_state_dict(checkpoint.get("model_state_dict", checkpoint))
     model.to(device)
     model.eval()

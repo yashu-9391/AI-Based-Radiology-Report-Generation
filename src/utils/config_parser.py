@@ -2,6 +2,12 @@ import os
 import yaml
 from typing import Dict, Any
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 def load_config(config_path: str = "configs/config.yaml") -> Dict[str, Any]:
     """
     Loads YAML configuration file and resolves default device & paths.
@@ -19,3 +25,4 @@ def load_config(config_path: str = "configs/config.yaml") -> Dict[str, Any]:
             os.makedirs(dir_path, exist_ok=True)
 
     return config
+

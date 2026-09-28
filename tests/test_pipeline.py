@@ -16,5 +16,6 @@ def test_end_to_end_pipeline():
     assert "positive_findings" in results
     assert "retrieved_reports" in results
     assert "report" in results
-    assert "PRELIMINARY RADIOLOGY REPORT" in results["report"]
-    assert "AI DISCLAIMER" in results["report"]
+    assert "PRELIMINARY CHEST X-RAY EXPLANATION" in results["report"]
+    assert "Important Disclaimer" in results["report"]
+
